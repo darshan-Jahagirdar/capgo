@@ -12,6 +12,7 @@ function sampleValue(prefix: string) {
 describe('Discord alert sanitization', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
   })
 
   it('removes password-like JSON fields and redacts token-like JSON fields', () => {
@@ -105,15 +106,13 @@ describe('Discord alert sanitization', () => {
     const requestUrl = `https://api.example.test/callback?access_token=${accessToken}&next=/dashboard`
     const fetchMock = vi.fn().mockResolvedValue(new Response('', { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
+    vi.stubEnv('DISCORD_ALERT', 'https://discord.example.test/webhook')
+    vi.stubEnv('ENVIRONMENT', 'test')
 
     const headers = new Headers({
       'user-agent': 'vitest',
     })
     const context = {
-      env: {
-        DISCORD_ALERT: 'https://discord.example.test/webhook',
-        ENVIRONMENT: 'test',
-      },
       get: (key: string) => key === 'requestId' ? 'request-1' : undefined,
       req: {
         method: 'GET',
