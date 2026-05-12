@@ -131,6 +131,7 @@ describe('Discord alert sanitization', () => {
       (field: { name: string }) => field.name.includes('Request Details'),
     )?.value
 
+    expect(requestDetails).toBeTypeOf('string')
     expect(requestDetails).toContain('access_token=acce...xxxx')
     expect(requestDetails).toContain('next=/dashboard')
     expect(JSON.stringify(payload)).not.toContain(accessToken)
