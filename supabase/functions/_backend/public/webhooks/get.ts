@@ -6,6 +6,7 @@ import { simpleError } from '../../utils/hono.ts'
 import { supabaseApikey } from '../../utils/supabase.ts'
 import { fetchLimit } from '../../utils/utils.ts'
 import { checkWebhookPermission } from './index.ts'
+import { safeSchemaErrorDetails } from './validation_errors.ts'
 
 const bodySchema = type({
   'orgId': 'string',
@@ -30,7 +31,7 @@ const webhooksSchema = webhookSchema.array()
 export async function get(c: Context, bodyRaw: any, apikey: Database['public']['Tables']['apikeys']['Row']): Promise<Response> {
   const bodyParsed = safeParseSchema(bodySchema, bodyRaw)
   if (!bodyParsed.success) {
-    throw simpleError('invalid_body', 'Invalid body', { error: bodyParsed.error })
+    throw simpleError('invalid_body', 'Invalid body', safeSchemaErrorDetails(bodyParsed.error))
   }
   const body = bodyParsed.data
 

@@ -12,6 +12,7 @@ import {
   updateDeliveryResult,
 } from '../../utils/webhook.ts'
 import { checkWebhookPermissionV2 } from './index.ts'
+import { safeSchemaErrorDetails, safeUrlErrorDetails } from './validation_errors.ts'
 
 const bodySchema = type({
   orgId: 'string',
@@ -21,7 +22,7 @@ const bodySchema = type({
 export async function test(c: Context<MiddlewareKeyVariables, any, any>, bodyRaw: any, auth: AuthInfo): Promise<Response> {
   const bodyParsed = safeParseSchema(bodySchema, bodyRaw)
   if (!bodyParsed.success) {
-    throw simpleError('invalid_body', 'Invalid body', { error: bodyParsed.error })
+    throw simpleError('invalid_body', 'Invalid body', safeSchemaErrorDetails(bodyParsed.error))
   }
   const body = bodyParsed.data
 
@@ -48,7 +49,7 @@ export async function test(c: Context<MiddlewareKeyVariables, any, any>, bodyRaw
 
   const urlError = await getWebhookPublicUrlValidationError(c, webhook.url)
   if (urlError)
-    throw simpleError('invalid_url', urlError, { url: webhook.url })
+    throw simpleError('invalid_url', urlError, safeUrlErrorDetails(webhook.url))
 
   // Create test payload
   const payload = createTestPayload(body.orgId)

@@ -6,6 +6,7 @@ import { simpleError } from '../../utils/hono.ts'
 import { supabaseApikey } from '../../utils/supabase.ts'
 import { getWebhookPublicUrlValidationError, WEBHOOK_EVENT_TYPES } from '../../utils/webhook.ts'
 import { checkWebhookPermission } from './index.ts'
+import { safeInvalidEventsDetails, safeSchemaErrorDetails, safeUrlErrorDetails } from './validation_errors.ts'
 
 const bodySchema = type({
   'orgId': 'string',
@@ -18,7 +19,7 @@ const bodySchema = type({
 export async function post(c: Context, bodyRaw: any, apikey: Database['public']['Tables']['apikeys']['Row']): Promise<Response> {
   const bodyParsed = safeParseSchema(bodySchema, bodyRaw)
   if (!bodyParsed.success) {
-    throw simpleError('invalid_body', 'Invalid body', { error: bodyParsed.error })
+    throw simpleError('invalid_body', 'Invalid body', safeSchemaErrorDetails(bodyParsed.error))
   }
   const body = bodyParsed.data
 
@@ -27,15 +28,12 @@ export async function post(c: Context, bodyRaw: any, apikey: Database['public'][
   // Validate events are allowed
   const invalidEvents = body.events.filter(e => !WEBHOOK_EVENT_TYPES.includes(e as any))
   if (invalidEvents.length > 0) {
-    throw simpleError('invalid_events', 'Invalid event types', {
-      invalid: invalidEvents,
-      allowed: WEBHOOK_EVENT_TYPES,
-    })
+    throw simpleError('invalid_events', 'Invalid event types', safeInvalidEventsDetails(invalidEvents, WEBHOOK_EVENT_TYPES))
   }
 
   const urlError = await getWebhookPublicUrlValidationError(c, body.url)
   if (urlError)
-    throw simpleError('invalid_url', urlError, { url: body.url })
+    throw simpleError('invalid_url', urlError, safeUrlErrorDetails(body.url))
 
   // Create webhook using authenticated client - RLS will enforce access
   // Note: Using type assertion as webhooks table types are not yet generated

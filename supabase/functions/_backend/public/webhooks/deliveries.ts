@@ -15,6 +15,7 @@ import {
   queueWebhookDelivery,
 } from '../../utils/webhook.ts'
 import { checkWebhookPermission, checkWebhookPermissionV2 } from './index.ts'
+import { safeSchemaErrorDetails, safeUrlErrorDetails } from './validation_errors.ts'
 
 const getDeliveriesSchema = type({
   'orgId': 'string',
@@ -33,7 +34,7 @@ const DELIVERIES_PER_PAGE = 50
 export async function getDeliveries(c: Context<MiddlewareKeyVariables, any, any>, bodyRaw: any, apikey: Database['public']['Tables']['apikeys']['Row']): Promise<Response> {
   const bodyParsed = safeParseSchema(getDeliveriesSchema, bodyRaw)
   if (!bodyParsed.success) {
-    throw simpleError('invalid_body', 'Invalid body', { error: bodyParsed.error })
+    throw simpleError('invalid_body', 'Invalid body', safeSchemaErrorDetails(bodyParsed.error))
   }
   const body = bodyParsed.data
 
@@ -110,7 +111,7 @@ export async function getDeliveries(c: Context<MiddlewareKeyVariables, any, any>
 export async function retryDelivery(c: Context<MiddlewareKeyVariables, any, any>, bodyRaw: any, auth: AuthInfo): Promise<Response> {
   const bodyParsed = safeParseSchema(retryDeliverySchema, bodyRaw)
   if (!bodyParsed.success) {
-    throw simpleError('invalid_body', 'Invalid body', { error: bodyParsed.error })
+    throw simpleError('invalid_body', 'Invalid body', safeSchemaErrorDetails(bodyParsed.error))
   }
   const body = bodyParsed.data
 
@@ -146,7 +147,7 @@ export async function retryDelivery(c: Context<MiddlewareKeyVariables, any, any>
 
   const urlError = await getWebhookPublicUrlValidationError(c, webhook.url)
   if (urlError)
-    throw simpleError('invalid_url', urlError, { url: webhook.url })
+    throw simpleError('invalid_url', urlError, safeUrlErrorDetails(webhook.url))
 
   // Reset delivery status and queue for retry
   await supabase
